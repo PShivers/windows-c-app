@@ -1,93 +1,9 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
-
-// Control identifiers
-#define ID_ROOMMATE_INPUT    101
-#define ID_ADD_ROOMMATE_BTN  102
-#define ID_BILL_NAME_INPUT   103
-#define ID_BILL_AMOUNT_INPUT 104
-#define ID_ADD_BILL_BTN      105
-#define ID_BILL_COMBO        106
-#define ID_ROOMMATE_COMBO    107
-#define ID_ASSIGN_BTN        108
-
-// Data structure constants
-#define MAX_NAME_LENGTH 50
-#define MAX_ROOMMATES 10
-#define MAX_BILL_NAME_LENGTH 50
-#define MAX_BILLS 20
-#define MAX_ASSIGNED_ROOMMATES 10
-
-// Roommate structure
-typedef struct {
-    char name[MAX_NAME_LENGTH];
-    int isActive;
-} Roommate;
-
-// Bill structure
-typedef struct {
-    char name[MAX_BILL_NAME_LENGTH];
-    float amount;
-    int assignedRoommates[MAX_ASSIGNED_ROOMMATES];
-    int assignedCount;
-    int isActive;
-} Bill;
-
-// Global data arrays
-Roommate roommates[MAX_ROOMMATES] = {0};
-Bill bills[MAX_BILLS] = {0};
-int roommateCount = 0;
-int billCount = 0;
-
-// Global control handles
-HWND hwndRoommateInput;
-HWND hwndBillNameInput;
-HWND hwndBillAmountInput;
-HWND hwndBillCombo;
-HWND hwndRoommateCombo;
-
-// Helper function: Calculate total owed by a roommate
-float calculateRoommateTotal(int roommateIndex) {
-    float total = 0.0;
-    for (int i = 0; i < billCount; i++) {
-        if (!bills[i].isActive) continue;
-
-        // Check if roommate is assigned to this bill
-        int isAssigned = 0;
-        for (int j = 0; j < bills[i].assignedCount; j++) {
-            if (bills[i].assignedRoommates[j] == roommateIndex) {
-                isAssigned = 1;
-                break;
-            }
-        }
-
-        if (isAssigned && bills[i].assignedCount > 0) {
-            total += bills[i].amount / bills[i].assignedCount;
-        }
-    }
-    return total;
-}
-
-// Helper function: Update bill combo box
-void updateBillComboBox(HWND hwndCombo) {
-    SendMessage(hwndCombo, CB_RESETCONTENT, 0, 0);
-    for (int i = 0; i < billCount; i++) {
-        if (bills[i].isActive) {
-            SendMessage(hwndCombo, CB_ADDSTRING, 0, (LPARAM)bills[i].name);
-        }
-    }
-}
-
-// Helper function: Update roommate combo box
-void updateRoommateComboBox(HWND hwndCombo) {
-    SendMessage(hwndCombo, CB_RESETCONTENT, 0, 0);
-    for (int i = 0; i < roommateCount; i++) {
-        if (roommates[i].isActive) {
-            SendMessage(hwndCombo, CB_ADDSTRING, 0, (LPARAM)roommates[i].name);
-        }
-    }
-}
+#include "roommate.h"
+#include "bill.h"
+#include "ui_controls.h"
 
 // Window procedure callback function
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -235,80 +151,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         return 0;
     }
 
-    // ===== ROOMMATE SECTION =====
-    // Label: "Add Roommate:"
-    CreateWindow("STATIC", "Add Roommate:",
-        WS_VISIBLE | WS_CHILD,
-        20, 20, 150, 20,
-        hwnd, NULL, hInstance, NULL);
-
-    // Text input for roommate name
-    hwndRoommateInput = CreateWindow("EDIT", "",
-        WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
-        20, 45, 200, 25,
-        hwnd, (HMENU)ID_ROOMMATE_INPUT, hInstance, NULL);
-
-    // Button: "Add Roommate"
-    CreateWindow("BUTTON", "Add Roommate",
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        230, 45, 120, 25,
-        hwnd, (HMENU)ID_ADD_ROOMMATE_BTN, hInstance, NULL);
-
-    // ===== BILL SECTION =====
-    // Label: "Add Bill:"
-    CreateWindow("STATIC", "Add Bill:",
-        WS_VISIBLE | WS_CHILD,
-        20, 90, 150, 20,
-        hwnd, NULL, hInstance, NULL);
-
-    // Text input for bill name
-    hwndBillNameInput = CreateWindow("EDIT", "",
-        WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
-        20, 115, 150, 25,
-        hwnd, (HMENU)ID_BILL_NAME_INPUT, hInstance, NULL);
-
-    // Text input for bill amount
-    hwndBillAmountInput = CreateWindow("EDIT", "",
-        WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
-        180, 115, 100, 25,
-        hwnd, (HMENU)ID_BILL_AMOUNT_INPUT, hInstance, NULL);
-
-    // Button: "Add Bill"
-    CreateWindow("BUTTON", "Add Bill",
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        290, 115, 100, 25,
-        hwnd, (HMENU)ID_ADD_BILL_BTN, hInstance, NULL);
-
-    // ===== ASSIGNMENT SECTION =====
-    // Label: "Assign Bill to Roommate:"
-    CreateWindow("STATIC", "Assign Bill to Roommate:",
-        WS_VISIBLE | WS_CHILD,
-        20, 160, 200, 20,
-        hwnd, NULL, hInstance, NULL);
-
-    // Combo box for bill selection
-    hwndBillCombo = CreateWindow("COMBOBOX", "",
-        WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL,
-        20, 185, 150, 200,
-        hwnd, (HMENU)ID_BILL_COMBO, hInstance, NULL);
-
-    // Combo box for roommate selection
-    hwndRoommateCombo = CreateWindow("COMBOBOX", "",
-        WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL,
-        180, 185, 150, 200,
-        hwnd, (HMENU)ID_ROOMMATE_COMBO, hInstance, NULL);
-
-    // Button: "Assign"
-    CreateWindow("BUTTON", "Assign",
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        340, 185, 100, 25,
-        hwnd, (HMENU)ID_ASSIGN_BTN, hInstance, NULL);
-
-    // Separator line label
-    CreateWindow("STATIC", "───────────────────────────────────────────────",
-        WS_VISIBLE | WS_CHILD,
-        20, 260, 550, 20,
-        hwnd, NULL, hInstance, NULL);
+    // Create UI controls using modular functions
+    createRoommateControls(hwnd, hInstance);
+    createBillControls(hwnd, hInstance);
+    createAssignmentControls(hwnd, hInstance);
 
     // Show window
     ShowWindow(hwnd, nCmdShow);
