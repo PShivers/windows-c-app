@@ -87,25 +87,37 @@ void createAssignmentControls(HWND hwndParent, HINSTANCE hInstance) {
     // Label: "Assign Bill to Roommate:"
     CreateWindow("STATIC", "Assign Bill to Roommate:",
         WS_VISIBLE | WS_CHILD,
-        220, 160, 200, 20,
+        220, 10, 200, 20,
+        hwndParent, NULL, hInstance, NULL);
+
+    // Label: "Bill:"
+    CreateWindow("STATIC", "Bill:",
+        WS_VISIBLE | WS_CHILD,
+        220, 40, 40, 20,
         hwndParent, NULL, hInstance, NULL);
 
     // Combo box for bill selection
     hwndBillCombo = CreateWindow("COMBOBOX", "",
         WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL,
-        220, 185, 80, 200,
+        270, 40, 120, 200,
         hwndParent, (HMENU)ID_BILL_COMBO, hInstance, NULL);
+
+    // Label: "Roommate:"
+    CreateWindow("STATIC", "Roommate:",
+        WS_VISIBLE | WS_CHILD,
+        220, 75, 70, 20,
+        hwndParent, NULL, hInstance, NULL);
 
     // Combo box for roommate selection
     hwndRoommateCombo = CreateWindow("COMBOBOX", "",
         WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL,
-        310, 185, 80, 200,
+        300, 75, 120, 200,
         hwndParent, (HMENU)ID_ROOMMATE_COMBO, hInstance, NULL);
 
     // Button: "Assign"
     CreateWindow("BUTTON", "Assign",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        220, 215, 170, 25,
+        220, 110, 200, 30,
         hwndParent, (HMENU)ID_ASSIGN_BTN, hInstance, NULL);
 
     // Separator line label
@@ -150,4 +162,10 @@ void createLeftPanel(HWND hwndParent, HINSTANCE hInstance) {
         hInstance,                  // Instance handle
         NULL                        // No additional data
     );
+
+    // Add "Add Bill" button at the top of the left panel
+    CreateWindow("BUTTON", "Add Bill",
+        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+        10, 10, 160, 30,
+        hwndLeftPanel, (HMENU)ID_OPEN_ADD_BILL_DIALOG, hInstance, NULL);
 }

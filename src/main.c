@@ -5,9 +5,146 @@
 #include "bill.h"
 #include "ui_controls.h"
 
+// Dialog procedure for Add Bill popup
+LRESULT CALLBACK AddBillDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_CREATE: {
+            // Create labels and input fields
+            CreateWindow("STATIC", "Bill Name:",
+                WS_VISIBLE | WS_CHILD,
+                10, 10, 100, 20,
+                hwndDlg, NULL, GetModuleHandle(NULL), NULL);
+
+            CreateWindow("EDIT", "",
+                WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
+                120, 10, 150, 25,
+                hwndDlg, (HMENU)ID_BILL_NAME_INPUT, GetModuleHandle(NULL), NULL);
+
+            CreateWindow("STATIC", "Amount:",
+                WS_VISIBLE | WS_CHILD,
+                10, 45, 100, 20,
+                hwndDlg, NULL, GetModuleHandle(NULL), NULL);
+
+            CreateWindow("EDIT", "",
+                WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
+                120, 45, 150, 25,
+                hwndDlg, (HMENU)ID_BILL_AMOUNT_INPUT, GetModuleHandle(NULL), NULL);
+
+            CreateWindow("STATIC", "Due Date:",
+                WS_VISIBLE | WS_CHILD,
+                10, 80, 100, 20,
+                hwndDlg, NULL, GetModuleHandle(NULL), NULL);
+
+            CreateWindow("EDIT", "",
+                WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
+                120, 80, 150, 25,
+                hwndDlg, (HMENU)ID_BILL_DUE_DATE_INPUT, GetModuleHandle(NULL), NULL);
+
+            // Create OK and Cancel buttons
+            CreateWindow("BUTTON", "OK",
+                WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+                60, 120, 80, 30,
+                hwndDlg, (HMENU)ID_DIALOG_OK, GetModuleHandle(NULL), NULL);
+
+            CreateWindow("BUTTON", "Cancel",
+                WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+                150, 120, 80, 30,
+                hwndDlg, (HMENU)ID_DIALOG_CANCEL, GetModuleHandle(NULL), NULL);
+
+            return 0;
+        }
+
+        case WM_COMMAND:
+            switch (LOWORD(wParam)) {
+                case ID_DIALOG_OK: {
+                    char billName[MAX_BILL_NAME_LENGTH];
+                    char amountStr[50];
+                    char dueDate[20];
+                    float amount;
+
+                    GetDlgItemText(hwndDlg, ID_BILL_NAME_INPUT, billName, MAX_BILL_NAME_LENGTH);
+                    GetDlgItemText(hwndDlg, ID_BILL_AMOUNT_INPUT, amountStr, 50);
+                    GetDlgItemText(hwndDlg, ID_BILL_DUE_DATE_INPUT, dueDate, 20);
+
+                    // Parse and validate amount
+                    if (strlen(billName) > 0 && sscanf(amountStr, "%f", &amount) == 1
+                        && amount > 0 && billCount < MAX_BILLS) {
+                        strncpy(bills[billCount].name, billName, MAX_BILL_NAME_LENGTH - 1);
+                        bills[billCount].name[MAX_BILL_NAME_LENGTH - 1] = '\0';
+                        bills[billCount].amount = amount;
+                        strncpy(bills[billCount].dueDate, dueDate, 19);
+                        bills[billCount].dueDate[19] = '\0';
+                        bills[billCount].assignedCount = 0;
+                        bills[billCount].isActive = 1;
+                        billCount++;
+
+                        updateBillComboBox(hwndBillCombo);
+                        InvalidateRect(hwndLeftPanel, NULL, TRUE);
+                        InvalidateRect(hwndRightPanel, NULL, TRUE);
+
+                        HWND hwndParent = GetParent(hwndDlg);
+                        EnableWindow(hwndParent, TRUE);
+                        SetForegroundWindow(hwndParent);
+                        DestroyWindow(hwndDlg);
+                    } else {
+                        MessageBox(hwndDlg, "Please enter a valid bill name and amount.", "Invalid Input", MB_OK | MB_ICONWARNING);
+                    }
+                    return 0;
+                }
+
+                case ID_DIALOG_CANCEL: {
+                    HWND hwndParent = GetParent(hwndDlg);
+                    EnableWindow(hwndParent, TRUE);
+                    SetForegroundWindow(hwndParent);
+                    DestroyWindow(hwndDlg);
+                    return 0;
+                }
+            }
+            break;
+
+        case WM_CLOSE: {
+            HWND hwndParent = GetParent(hwndDlg);
+            EnableWindow(hwndParent, TRUE);
+            SetForegroundWindow(hwndParent);
+            DestroyWindow(hwndDlg);
+            return 0;
+        }
+
+        case WM_DESTROY: {
+            HWND hwndParent = GetParent(hwndDlg);
+            if (hwndParent) {
+                EnableWindow(hwndParent, TRUE);
+                SetForegroundWindow(hwndParent);
+            }
+            return 0;
+        }
+    }
+    return DefWindowProc(hwndDlg, uMsg, wParam, lParam);
+}
+
 // Left panel window procedure for bills display
 LRESULT CALLBACK LeftPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
+        case WM_COMMAND:
+            if (LOWORD(wParam) == ID_OPEN_ADD_BILL_DIALOG) {
+                // Create and show the Add Bill dialog as a popup window
+                HWND hwndParent = GetParent(hwnd);
+                HWND hwndDialog = CreateWindowEx(
+                    WS_EX_DLGMODALFRAME,
+                    "AddBillDialogClass",
+                    "Add Bill",
+                    WS_VISIBLE | WS_CAPTION | WS_SYSMENU,
+                    CW_USEDEFAULT, CW_USEDEFAULT,
+                    300, 200,
+                    hwndParent,
+                    NULL,
+                    GetModuleHandle(NULL),
+                    NULL
+                );
+                EnableWindow(hwndParent, FALSE);  // Make it modal
+            }
+            return 0;
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
@@ -17,12 +154,12 @@ LRESULT CALLBACK LeftPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             GetClientRect(hwnd, &rect);
             FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
 
-            // Draw "BILLS:" header
+            // Draw "BILLS:" header (moved down to make room for button)
             const char* header = "BILLS:";
-            TextOut(hdc, 10, 10, header, strlen(header));
+            TextOut(hdc, 10, 50, header, strlen(header));
 
             // Draw each bill with name, amount, and due date
-            int yPos = 40;
+            int yPos = 80;
             for (int i = 0; i < billCount; i++) {
                 if (!bills[i].isActive) continue;
 
@@ -112,39 +249,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
-                case ID_ADD_BILL_BTN: {
-                    char billName[MAX_BILL_NAME_LENGTH];
-                    char amountStr[50];
-                    char dueDate[20];
-                    float amount;
-
-                    GetWindowText(hwndBillNameInput, billName, MAX_BILL_NAME_LENGTH);
-                    GetWindowText(hwndBillAmountInput, amountStr, 50);
-                    GetWindowText(hwndBillDueDateInput, dueDate, 20);
-
-                    // Parse and validate amount
-                    if (strlen(billName) > 0 && sscanf(amountStr, "%f", &amount) == 1
-                        && amount > 0 && billCount < MAX_BILLS) {
-                        strncpy(bills[billCount].name, billName, MAX_BILL_NAME_LENGTH - 1);
-                        bills[billCount].name[MAX_BILL_NAME_LENGTH - 1] = '\0';
-                        bills[billCount].amount = amount;
-                        strncpy(bills[billCount].dueDate, dueDate, 19);
-                        bills[billCount].dueDate[19] = '\0';
-                        bills[billCount].assignedCount = 0;
-                        bills[billCount].isActive = 1;
-                        billCount++;
-
-                        // Clear inputs and update combo
-                        SetWindowText(hwndBillNameInput, "");
-                        SetWindowText(hwndBillAmountInput, "");
-                        SetWindowText(hwndBillDueDateInput, "");
-                        updateBillComboBox(hwndBillCombo);
-                        InvalidateRect(hwndRightPanel, NULL, TRUE);
-                        InvalidateRect(hwndLeftPanel, NULL, TRUE);
-                    }
-                    break;
-                }
-
                 case ID_ASSIGN_BTN: {
                     int billIdx = SendMessage(hwndBillCombo, CB_GETCURSEL, 0, 0);
                     int roommateIdx = SendMessage(hwndRoommateCombo, CB_GETCURSEL, 0, 0);
@@ -242,6 +346,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Register left panel window class
     RegisterClass(&wcLeftPanel);
 
+    // Define window class for Add Bill dialog
+    const char DIALOG_CLASS_NAME[] = "AddBillDialogClass";
+
+    WNDCLASS wcDialog = {0};
+    wcDialog.lpfnWndProc = AddBillDialogProc;
+    wcDialog.hInstance = hInstance;
+    wcDialog.lpszClassName = DIALOG_CLASS_NAME;
+    wcDialog.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcDialog.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+
+    // Register dialog window class
+    RegisterClass(&wcDialog);
+
     // Create window (wider to accommodate both panels)
     HWND hwnd = CreateWindowEx(
         0,                              // Optional window styles
@@ -261,8 +378,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Create UI controls using modular functions
-    createLeftPanel(hwnd, hInstance);   // Left panel for bills list
-    createBillControls(hwnd, hInstance);
+    createLeftPanel(hwnd, hInstance);   // Left panel for bills list with Add Bill button
     createAssignmentControls(hwnd, hInstance);
     createRightPanel(hwnd, hInstance);  // Right panel with roommate controls inside
 

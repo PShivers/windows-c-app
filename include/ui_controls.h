@@ -13,6 +13,9 @@
 #define ID_BILL_COMBO        107
 #define ID_ROOMMATE_COMBO    108
 #define ID_ASSIGN_BTN        109
+#define ID_OPEN_ADD_BILL_DIALOG 110
+#define ID_DIALOG_OK         111
+#define ID_DIALOG_CANCEL     112
 
 // Global control handles (extern - defined in ui_controls.c)
 extern HWND hwndRoommateInput;
