@@ -6,25 +6,26 @@ HWND hwndBillNameInput;
 HWND hwndBillAmountInput;
 HWND hwndBillCombo;
 HWND hwndRoommateCombo;
+HWND hwndRightPanel;
 
 // Create roommate input controls
 void createRoommateControls(HWND hwndParent, HINSTANCE hInstance) {
     // Label: "Add Roommate:"
     CreateWindow("STATIC", "Add Roommate:",
         WS_VISIBLE | WS_CHILD,
-        20, 20, 150, 20,
+        20, 10, 150, 20,
         hwndParent, NULL, hInstance, NULL);
 
     // Text input for roommate name
     hwndRoommateInput = CreateWindow("EDIT", "",
         WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
-        20, 45, 200, 25,
+        20, 35, 200, 25,
         hwndParent, (HMENU)ID_ROOMMATE_INPUT, hInstance, NULL);
 
     // Button: "Add Roommate"
     CreateWindow("BUTTON", "Add Roommate",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        230, 45, 120, 25,
+        230, 35, 120, 25,
         hwndParent, (HMENU)ID_ADD_ROOMMATE_BTN, hInstance, NULL);
 }
 
@@ -86,4 +87,21 @@ void createAssignmentControls(HWND hwndParent, HINSTANCE hInstance) {
         WS_VISIBLE | WS_CHILD,
         20, 260, 550, 20,
         hwndParent, NULL, hInstance, NULL);
+}
+
+// Create right panel for totals display
+void createRightPanel(HWND hwndParent, HINSTANCE hInstance) {
+    // Create a child window as the right panel using custom window class
+    hwndRightPanel = CreateWindowEx(
+        WS_EX_CLIENTEDGE,           // Sunken border style
+        "RightPanelClass",          // Custom window class (registered in main.c)
+        "",                         // No text
+        WS_CHILD | WS_VISIBLE,      // Child, visible
+        400, 0,                     // Position (x, y)
+        200, 550,                   // Size (width, height)
+        hwndParent,                 // Parent window
+        NULL,                       // No menu
+        hInstance,                  // Instance handle
+        NULL                        // No additional data
+    );
 }

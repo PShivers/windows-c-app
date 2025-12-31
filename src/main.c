@@ -5,6 +5,41 @@
 #include "bill.h"
 #include "ui_controls.h"
 
+// Right panel window procedure for custom painting
+LRESULT CALLBACK RightPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+
+            // Set background to white
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+            FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
+
+            // Draw "TOTALS OWED:" header
+            const char* header = "TOTALS OWED:";
+            TextOut(hdc, 10, 20, header, strlen(header));
+
+            // Draw each roommate's total
+            int yPos = 50;
+            for (int i = 0; i < roommateCount; i++) {
+                if (!roommates[i].isActive) continue;
+
+                float total = calculateRoommateTotal(i);
+                char line[200];
+                sprintf(line, "%s: $%.2f", roommates[i].name, total);
+                TextOut(hdc, 10, yPos, line, strlen(line));
+                yPos += 25;
+            }
+
+            EndPaint(hwnd, &ps);
+            return 0;
+        }
+    }
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
 // Window procedure callback function
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -28,7 +63,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         // Clear input and update combo
                         SetWindowText(hwndRoommateInput, "");
                         updateRoommateComboBox(hwndRoommateCombo);
-                        InvalidateRect(hwnd, NULL, TRUE);
+                        InvalidateRect(hwndRightPanel, NULL, TRUE);
                     }
                     break;
                 }
@@ -55,7 +90,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         SetWindowText(hwndBillNameInput, "");
                         SetWindowText(hwndBillAmountInput, "");
                         updateBillComboBox(hwndBillCombo);
-                        InvalidateRect(hwnd, NULL, TRUE);
+                        InvalidateRect(hwndRightPanel, NULL, TRUE);
                     }
                     break;
                 }
@@ -79,7 +114,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         if (!alreadyAssigned) {
                             bills[billIdx].assignedRoommates[bills[billIdx].assignedCount] = roommateIdx;
                             bills[billIdx].assignedCount++;
-                            InvalidateRect(hwnd, NULL, TRUE);
+                            InvalidateRect(hwndRightPanel, NULL, TRUE);
                         }
                     }
                     break;
@@ -87,28 +122,26 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
             return 0;
 
+        case WM_SIZE: {
+            // Keep right panel pinned to right edge when window is resized
+            if (hwndRightPanel) {
+                int windowWidth = LOWORD(lParam);
+                int windowHeight = HIWORD(lParam);
+
+                SetWindowPos(hwndRightPanel, NULL,
+                             windowWidth - 200, 0,     // Always 200px from right edge
+                             200, windowHeight,        // Full height
+                             SWP_NOZORDER);
+            }
+            return 0;
+        }
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
             // Set background color
             FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-
-            // Draw "TOTALS OWED:" header
-            const char* header = "TOTALS OWED:";
-            TextOut(hdc, 20, 300, header, strlen(header));
-
-            // Draw each roommate's total
-            int yPos = 330;
-            for (int i = 0; i < roommateCount; i++) {
-                if (!roommates[i].isActive) continue;
-
-                float total = calculateRoommateTotal(i);
-                char line[200];
-                sprintf(line, "  %s: $%.2f", roommates[i].name, total);
-                TextOut(hdc, 20, yPos, line, strlen(line));
-                yPos += 25;
-            }
 
             EndPaint(hwnd, &ps);
             return 0;
@@ -121,7 +154,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
 
-    // Define window class
+    // Define window class for main window
     const char CLASS_NAME[] = "BasicWindowClass";
 
     WNDCLASS wc = {0};
@@ -130,8 +163,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
-    // Register window class
+    // Register main window class
     RegisterClass(&wc);
+
+    // Define window class for right panel
+    const char PANEL_CLASS_NAME[] = "RightPanelClass";
+
+    WNDCLASS wcPanel = {0};
+    wcPanel.lpfnWndProc = RightPanelProc;
+    wcPanel.hInstance = hInstance;
+    wcPanel.lpszClassName = PANEL_CLASS_NAME;
+    wcPanel.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcPanel.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+
+    // Register panel window class
+    RegisterClass(&wcPanel);
 
     // Create window
     HWND hwnd = CreateWindowEx(
@@ -155,6 +201,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     createRoommateControls(hwnd, hInstance);
     createBillControls(hwnd, hInstance);
     createAssignmentControls(hwnd, hInstance);
+    createRightPanel(hwnd, hInstance);
 
     // Show window
     ShowWindow(hwnd, nCmdShow);

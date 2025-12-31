@@ -19,10 +19,12 @@ extern HWND hwndBillNameInput;
 extern HWND hwndBillAmountInput;
 extern HWND hwndBillCombo;
 extern HWND hwndRoommateCombo;
+extern HWND hwndRightPanel;
 
 // Function declarations
 void createRoommateControls(HWND hwndParent, HINSTANCE hInstance);
 void createBillControls(HWND hwndParent, HINSTANCE hInstance);
 void createAssignmentControls(HWND hwndParent, HINSTANCE hInstance);
+void createRightPanel(HWND hwndParent, HINSTANCE hInstance);
 
 #endif // UI_CONTROLS_H
