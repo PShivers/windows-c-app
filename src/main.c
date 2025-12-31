@@ -8,6 +8,27 @@
 // Right panel window procedure for custom painting
 LRESULT CALLBACK RightPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
+        case WM_COMMAND:
+            // Handle button clicks from controls within the panel
+            if (LOWORD(wParam) == ID_ADD_ROOMMATE_BTN) {
+                char name[MAX_NAME_LENGTH];
+                GetWindowText(hwndRoommateInput, name, MAX_NAME_LENGTH);
+
+                // Validate: not empty and under limit
+                if (strlen(name) > 0 && roommateCount < MAX_ROOMMATES) {
+                    strncpy(roommates[roommateCount].name, name, MAX_NAME_LENGTH - 1);
+                    roommates[roommateCount].name[MAX_NAME_LENGTH - 1] = '\0';
+                    roommates[roommateCount].isActive = 1;
+                    roommateCount++;
+
+                    // Clear input and update combo
+                    SetWindowText(hwndRoommateInput, "");
+                    updateRoommateComboBox(hwndRoommateCombo);
+                    InvalidateRect(hwndRightPanel, NULL, TRUE);
+                }
+            }
+            return 0;
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
@@ -17,12 +38,12 @@ LRESULT CALLBACK RightPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             GetClientRect(hwnd, &rect);
             FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
 
-            // Draw "TOTALS OWED:" header
+            // Draw "TOTALS OWED:" header (moved down to make room for roommate controls)
             const char* header = "TOTALS OWED:";
-            TextOut(hdc, 10, 20, header, strlen(header));
+            TextOut(hdc, 10, 105, header, strlen(header));
 
             // Draw each roommate's total
-            int yPos = 50;
+            int yPos = 135;
             for (int i = 0; i < roommateCount; i++) {
                 if (!roommates[i].isActive) continue;
 
@@ -49,25 +70,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
-                case ID_ADD_ROOMMATE_BTN: {
-                    char name[MAX_NAME_LENGTH];
-                    GetWindowText(hwndRoommateInput, name, MAX_NAME_LENGTH);
-
-                    // Validate: not empty and under limit
-                    if (strlen(name) > 0 && roommateCount < MAX_ROOMMATES) {
-                        strncpy(roommates[roommateCount].name, name, MAX_NAME_LENGTH - 1);
-                        roommates[roommateCount].name[MAX_NAME_LENGTH - 1] = '\0';
-                        roommates[roommateCount].isActive = 1;
-                        roommateCount++;
-
-                        // Clear input and update combo
-                        SetWindowText(hwndRoommateInput, "");
-                        updateRoommateComboBox(hwndRoommateCombo);
-                        InvalidateRect(hwndRightPanel, NULL, TRUE);
-                    }
-                    break;
-                }
-
                 case ID_ADD_BILL_BTN: {
                     char billName[MAX_BILL_NAME_LENGTH];
                     char amountStr[50];
@@ -129,8 +131,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 int windowHeight = HIWORD(lParam);
 
                 SetWindowPos(hwndRightPanel, NULL,
-                             windowWidth - 200, 0,     // Always 200px from right edge
-                             200, windowHeight,        // Full height
+                             windowWidth - 200, 10,           // Always 200px from right edge, start at y=10
+                             200, windowHeight - 10,          // Full height minus top offset
                              SWP_NOZORDER);
             }
             return 0;
@@ -198,10 +200,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Create UI controls using modular functions
-    createRoommateControls(hwnd, hInstance);
     createBillControls(hwnd, hInstance);
     createAssignmentControls(hwnd, hInstance);
-    createRightPanel(hwnd, hInstance);
+    createRightPanel(hwnd, hInstance);  // This now also creates roommate controls inside
 
     // Show window
     ShowWindow(hwnd, nCmdShow);

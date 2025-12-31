@@ -13,19 +13,19 @@ void createRoommateControls(HWND hwndParent, HINSTANCE hInstance) {
     // Label: "Add Roommate:"
     CreateWindow("STATIC", "Add Roommate:",
         WS_VISIBLE | WS_CHILD,
-        20, 10, 150, 20,
+        10, 10, 180, 20,
         hwndParent, NULL, hInstance, NULL);
 
     // Text input for roommate name
     hwndRoommateInput = CreateWindow("EDIT", "",
         WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,
-        20, 35, 200, 25,
+        10, 35, 160, 25,
         hwndParent, (HMENU)ID_ROOMMATE_INPUT, hInstance, NULL);
 
     // Button: "Add Roommate"
-    CreateWindow("BUTTON", "Add Roommate",
+    CreateWindow("BUTTON", "Add",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        230, 35, 120, 25,
+        10, 65, 160, 25,
         hwndParent, (HMENU)ID_ADD_ROOMMATE_BTN, hInstance, NULL);
 }
 
@@ -83,10 +83,10 @@ void createAssignmentControls(HWND hwndParent, HINSTANCE hInstance) {
         hwndParent, (HMENU)ID_ASSIGN_BTN, hInstance, NULL);
 
     // Separator line label
-    CreateWindow("STATIC", "───────────────────────────────────────────────",
-        WS_VISIBLE | WS_CHILD,
-        20, 260, 550, 20,
-        hwndParent, NULL, hInstance, NULL);
+    // CreateWindow("STATIC", "───────────────────────────────────────────────",
+    //     WS_VISIBLE | WS_CHILD,
+    //     20, 260, 550, 20,
+    //     hwndParent, NULL, hInstance, NULL);
 }
 
 // Create right panel for totals display
@@ -97,11 +97,14 @@ void createRightPanel(HWND hwndParent, HINSTANCE hInstance) {
         "RightPanelClass",          // Custom window class (registered in main.c)
         "",                         // No text
         WS_CHILD | WS_VISIBLE,      // Child, visible
-        400, 0,                     // Position (x, y)
-        200, 550,                   // Size (width, height)
+        400, 10,                    // Position (x, y) - start at y=10 to align with controls
+        200, 540,                   // Size (width, height)
         hwndParent,                 // Parent window
         NULL,                       // No menu
         hInstance,                  // Instance handle
         NULL                        // No additional data
     );
+
+    // Create roommate controls inside the right panel
+    createRoommateControls(hwndRightPanel, hInstance);
 }
