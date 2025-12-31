@@ -12,6 +12,7 @@
 typedef struct {
     char name[MAX_BILL_NAME_LENGTH];
     float amount;
+    char dueDate[20];  // Format: "MM/DD/YYYY"
     int assignedRoommates[MAX_ASSIGNED_ROOMMATES];
     int assignedCount;
     int isActive;

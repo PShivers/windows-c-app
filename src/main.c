@@ -5,6 +5,48 @@
 #include "bill.h"
 #include "ui_controls.h"
 
+// Left panel window procedure for bills display
+LRESULT CALLBACK LeftPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+
+            // Set background to white
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+            FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
+
+            // Draw "BILLS:" header
+            const char* header = "BILLS:";
+            TextOut(hdc, 10, 10, header, strlen(header));
+
+            // Draw each bill with name, amount, and due date
+            int yPos = 40;
+            for (int i = 0; i < billCount; i++) {
+                if (!bills[i].isActive) continue;
+
+                char line[200];
+                sprintf(line, "%s", bills[i].name);
+                TextOut(hdc, 10, yPos, line, strlen(line));
+                yPos += 20;
+
+                sprintf(line, "$%.2f", bills[i].amount);
+                TextOut(hdc, 10, yPos, line, strlen(line));
+                yPos += 20;
+
+                sprintf(line, "Due: %s", bills[i].dueDate);
+                TextOut(hdc, 10, yPos, line, strlen(line));
+                yPos += 30;  // Extra space between bills
+            }
+
+            EndPaint(hwnd, &ps);
+            return 0;
+        }
+    }
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
 // Right panel window procedure for custom painting
 LRESULT CALLBACK RightPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -73,10 +115,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 case ID_ADD_BILL_BTN: {
                     char billName[MAX_BILL_NAME_LENGTH];
                     char amountStr[50];
+                    char dueDate[20];
                     float amount;
 
                     GetWindowText(hwndBillNameInput, billName, MAX_BILL_NAME_LENGTH);
                     GetWindowText(hwndBillAmountInput, amountStr, 50);
+                    GetWindowText(hwndBillDueDateInput, dueDate, 20);
 
                     // Parse and validate amount
                     if (strlen(billName) > 0 && sscanf(amountStr, "%f", &amount) == 1
@@ -84,6 +128,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         strncpy(bills[billCount].name, billName, MAX_BILL_NAME_LENGTH - 1);
                         bills[billCount].name[MAX_BILL_NAME_LENGTH - 1] = '\0';
                         bills[billCount].amount = amount;
+                        strncpy(bills[billCount].dueDate, dueDate, 19);
+                        bills[billCount].dueDate[19] = '\0';
                         bills[billCount].assignedCount = 0;
                         bills[billCount].isActive = 1;
                         billCount++;
@@ -91,8 +137,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         // Clear inputs and update combo
                         SetWindowText(hwndBillNameInput, "");
                         SetWindowText(hwndBillAmountInput, "");
+                        SetWindowText(hwndBillDueDateInput, "");
                         updateBillComboBox(hwndBillCombo);
                         InvalidateRect(hwndRightPanel, NULL, TRUE);
+                        InvalidateRect(hwndLeftPanel, NULL, TRUE);
                     }
                     break;
                 }
@@ -181,14 +229,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Register panel window class
     RegisterClass(&wcPanel);
 
-    // Create window
+    // Define window class for left panel
+    const char LEFT_PANEL_CLASS_NAME[] = "LeftPanelClass";
+
+    WNDCLASS wcLeftPanel = {0};
+    wcLeftPanel.lpfnWndProc = LeftPanelProc;
+    wcLeftPanel.hInstance = hInstance;
+    wcLeftPanel.lpszClassName = LEFT_PANEL_CLASS_NAME;
+    wcLeftPanel.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcLeftPanel.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+
+    // Register left panel window class
+    RegisterClass(&wcLeftPanel);
+
+    // Create window (wider to accommodate both panels)
     HWND hwnd = CreateWindowEx(
         0,                              // Optional window styles
         CLASS_NAME,                     // Window class
         "Bill Splitter",                // Window title
         WS_OVERLAPPEDWINDOW,            // Window style
         CW_USEDEFAULT, CW_USEDEFAULT,   // Position
-        600, 550,                       // Size (wider and taller)
+        850, 550,                       // Size (wider for both panels)
         NULL,                           // Parent window
         NULL,                           // Menu
         hInstance,                      // Instance handle
@@ -200,9 +261,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Create UI controls using modular functions
+    createLeftPanel(hwnd, hInstance);   // Left panel for bills list
     createBillControls(hwnd, hInstance);
     createAssignmentControls(hwnd, hInstance);
-    createRightPanel(hwnd, hInstance);  // This now also creates roommate controls inside
+    createRightPanel(hwnd, hInstance);  // Right panel with roommate controls inside
 
     // Show window
     ShowWindow(hwnd, nCmdShow);
